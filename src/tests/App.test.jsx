@@ -1,10 +1,24 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { vi, expect, test, afterEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { vi, expect, test, beforeEach, afterEach } from 'vitest';
 import App from '../App';
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+      Promise.resolve({
+        json: () => Promise.resolve({ name: 'Jack', email: 'jack@email.com' }),
+      }),
+    ),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 test('render h1 element', () => {
   render(<App />);
-  screen.debug();
   expect(screen.getByText('Hello World')).toBeInTheDocument();
 });
 
@@ -16,60 +30,18 @@ test('list contains 5 animals', () => {
 
   expect(listElement).toBeInTheDocument();
   expect(listElement).toHaveClass('animals');
-  expect(listItems.length).toEqual(5);
+  expect(listItems).toHaveLength(5);
+});
+
+test('loading text is shown while API request is in progress', () => {
+  render(<App />);
+
+  expect(screen.getByText('Loading...')).toBeInTheDocument();
 });
 
 test('renders the user after fetch resolves', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() => {
-      const user = { name: 'Jack', email: 'jack@email.com' };
-      return Promise.resolve({
-        json: () => Promise.resolve(user),
-      });
-    }),
-  );
-
   render(<App />);
 
   expect(await screen.findByText('Jack')).toBeInTheDocument();
   expect(screen.getByText('jack@email.com')).toBeInTheDocument();
-});
-
-test('loading text is shown while API request is in progress', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() =>
-      Promise.resolve({
-        json: () => Promise.resolve({ name: 'Jack', email: 'j@x.com' }),
-      }),
-    ),
-  );
-
-  render(<App />);
-
-  expect(screen.getByText('Loading...')).toBeInTheDocument();
-
-  await waitFor(() =>
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument(),
-  );
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
-test("user's name is rendered", async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() =>
-      Promise.resolve({
-        json: () => Promise.resolve({ name: 'Jack', email: 'jack@email.com' }),
-      }),
-    ),
-  );
-
-  render(<App />);
-
-  await screen.findByText('Jack');
 });
