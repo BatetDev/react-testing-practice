@@ -1,55 +1,75 @@
-import { render, screen } from '@testing-library/react';
-import { vi, expect, test, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import App from '../App';
 
-beforeEach(() => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() =>
-      Promise.resolve({
-        json: () => Promise.resolve({ name: 'Jack', email: 'jack@email.com' }),
-      }),
-    ),
-  );
-});
+describe('App', () => {
+  describe('initial render', () => {
+    beforeEach(() => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => new Promise(() => {})),
+      ); // never resolves
+    });
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
 
-test('render h1 element', () => {
-  render(<App />);
-  expect(screen.getByText('Hello World')).toBeInTheDocument();
-});
+    it('renders the h1 element', () => {
+      render(<App />);
+      expect(screen.getByText('Hello World')).toBeInTheDocument();
+    });
 
-test('list contains 5 animals', () => {
-  render(<App />);
+    it('renders 5 animals in the list', () => {
+      render(<App />);
 
-  const listElement = screen.getByRole('list');
-  const listItems = screen.getAllByRole('listitem');
+      const listElement = screen.getByRole('list');
+      const listItems = screen.getAllByRole('listitem');
 
-  expect(listElement).toBeInTheDocument();
-  expect(listElement).toHaveClass('animals');
-  expect(listItems).toHaveLength(5);
-});
+      expect(listElement).toHaveClass('animals');
+      expect(listItems).toHaveLength(5);
+    });
+  });
 
-test('loading text is shown while API request is in progress', () => {
-  render(<App />);
+  describe('async fetch behavior', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
 
-  expect(screen.getByText('Loading...')).toBeInTheDocument();
-});
+    it('shows the loading text while the request is in progress', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => new Promise(() => {})), // never resolves
+      );
 
-test('renders the user after fetch resolves', async () => {
-  render(<App />);
+      render(<App />);
+      expect(screen.getByText('Loading...')).toBeInTheDocument();
+    });
 
-  expect(await screen.findByText('Jack')).toBeInTheDocument();
-  expect(screen.getByText('jack@email.com')).toBeInTheDocument();
-});
+    it('renders the user after fetch resolves', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() =>
+          Promise.resolve({
+            json: () =>
+              Promise.resolve({ name: 'Jack', email: 'jack@email.com' }),
+          }),
+        ),
+      );
 
-test('error message is shown', async () => {
-  fetch.mockImplementationOnce(() => Promise.reject(new Error('API is down')));
+      render(<App />);
+      expect(await screen.findByText('Jack')).toBeInTheDocument();
+      expect(screen.getByText('jack@email.com')).toBeInTheDocument();
+    });
 
-  render(<App />);
+    it('shows an error message when fetch rejects', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => Promise.reject(new Error('API is down'))),
+      );
 
-  expect(await screen.findByText('API is down')).toBeInTheDocument();
+      render(<App />);
+      expect(await screen.findByText('API is down')).toBeInTheDocument();
+    });
+  });
 });
