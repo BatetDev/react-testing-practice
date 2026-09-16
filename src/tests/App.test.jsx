@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { vi, expect, test } from 'vitest';
+import { vi, expect, test, afterEach } from 'vitest';
 import App from '../App';
 
 test('render h1 element', () => {
@@ -53,4 +53,23 @@ test('loading text is shown while API request is in progress', async () => {
   await waitFor(() =>
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument(),
   );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+test("user's name is rendered", async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+      Promise.resolve({
+        json: () => Promise.resolve({ name: 'Jack', email: 'jack@email.com' }),
+      }),
+    ),
+  );
+
+  render(<App />);
+
+  await screen.findByText('Jack');
 });
