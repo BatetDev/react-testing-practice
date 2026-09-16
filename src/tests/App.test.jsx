@@ -45,3 +45,11 @@ test('renders the user after fetch resolves', async () => {
   expect(await screen.findByText('Jack')).toBeInTheDocument();
   expect(screen.getByText('jack@email.com')).toBeInTheDocument();
 });
+
+test('error message is shown', async () => {
+  fetch.mockImplementationOnce(() => Promise.reject(new Error('API is down')));
+
+  render(<App />);
+
+  expect(await screen.findByText('API is down')).toBeInTheDocument();
+});
