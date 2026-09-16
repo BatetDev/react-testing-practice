@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi, expect, test } from 'vitest';
 import App from '../App';
 
@@ -34,4 +34,23 @@ test('renders the user after fetch resolves', async () => {
 
   expect(await screen.findByText('Jack')).toBeInTheDocument();
   expect(screen.getByText('jack@email.com')).toBeInTheDocument();
+});
+
+test('loading text is shown while API request is in progress', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+      Promise.resolve({
+        json: () => Promise.resolve({ name: 'Jack', email: 'j@x.com' }),
+      }),
+    ),
+  );
+
+  render(<App />);
+
+  expect(screen.getByText('Loading...')).toBeInTheDocument();
+
+  await waitFor(() =>
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument(),
+  );
 });
